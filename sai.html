@@ -583,7 +583,10 @@
     const files = shuffle(fileList);
     const n = files.length;
     const aspect = innerWidth / innerHeight || 1.6;
-    const baseW = Math.max(10, Math.min(26, 100 / Math.sqrt(n * aspect) * 1.15)); // target tile width so n tiles roughly cover the canvas
+    const avgClipAspect = 1.2; // matches the midpoint of the 0.6-1.8 random range below
+    const avgHtoW = aspect / avgClipAspect;
+    const targetCoverage = 0.5; // fraction of the canvas tiles should roughly sum to, so random placement can actually avoid overlap
+    const baseW = Math.max(8, Math.min(20, Math.sqrt((targetCoverage * 10000) / (n * avgHtoW))));
 
     // pre-compute each tile's random size, then place biggest-first so they get first pick of open space
     const tiles = files.map((name) => {
@@ -599,7 +602,7 @@
       const { w, h } = tile;
       let best = null;
       let bestOverlap = Infinity;
-      for (let attempt = 0; attempt < 80; attempt++) {
+      for (let attempt = 0; attempt < 200; attempt++) {
         const left = Math.random() * Math.max(0, 100 - w);
         const top = Math.random() * Math.max(0, 100 - h);
         const box = { left, top, w, h };
