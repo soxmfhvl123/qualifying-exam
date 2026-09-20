@@ -291,7 +291,7 @@
     <div class="slide-content">
       <div class="eyebrow i18n" data-ko="나는 왜 공간에 관심이 있는가 — 1" data-en="Why I Care About Space — 1">나는 왜 공간에 관심이 있는가 — 1</div>
       <div class="headline i18n" data-ko="F&amp;B, TECH, FASHION, PERSONAL 브랜딩을 하면서" data-en="While branding F&amp;B, TECH, FASHION, PERSONAL">F&amp;B, TECH, FASHION, PERSONAL 브랜딩을 하면서</div>
-      <div class="body-text i18n" data-ko="사람들은 점점 더 자신만의 방식으로 살고 싶어했다. 그 관심은 자연스럽게, 내가 매일 있는 공간으로 향했다." data-en="People increasingly wanted to live in their own way. That interest naturally turned toward the space I inhabit every day.">사람들은 점점 더 자신만의 방식으로 살고 싶어했다. 그 관심은 자연스럽게, 내가 매일 있는 공간으로 향했다.</div>
+      <div class="body-text i18n" data-ko="사람들은 점점 더 자신만의 방식으로 살고 싶어했다. 그 관심은 자연스럽게, 내가 매일 있는 공간으로 향했다." data-en="People increasingly wanted to live in their own way. That interest naturally turned toward the space I inhabit every&nbsp;day.">사람들은 점점 더 자신만의 방식으로 살고 싶어했다. 그 관심은 자연스럽게, 내가 매일 있는 공간으로 향했다.</div>
     </div>
   </section>
 
@@ -446,7 +446,6 @@
   <!-- 15 : Thank you -->
   <section class="slide">
     <div class="headline i18n" data-ko="감사합니다" data-en="Thank You">감사합니다</div>
-    <div class="body-text i18n" data-ko="Thank you">Thank you</div>
   </section>
 
 </div>
@@ -577,7 +576,7 @@
     return ox * oy;
   }
 
-  function buildVideoGrid(hostId, dir, fileList) {
+  function buildVideoGrid(hostId, dir, fileList, reserveBox) {
     const host = document.getElementById(hostId);
     if (!host || videoGridBuilt.has(hostId) || fileList.length === 0) return;
     videoGridBuilt.add(hostId);
@@ -604,7 +603,8 @@
         const left = Math.random() * Math.max(0, 100 - w);
         const top = Math.random() * Math.max(0, 100 - h);
         const box = { left, top, w, h };
-        const overlap = placed.reduce((sum, p) => sum + boxOverlapArea(box, p), 0);
+        let overlap = placed.reduce((sum, p) => sum + boxOverlapArea(box, p), 0);
+        if (reserveBox) overlap += boxOverlapArea(box, reserveBox) * 6; // strongly prefer staying clear of the text
         if (overlap < bestOverlap) { bestOverlap = overlap; best = box; }
         if (overlap === 0) break;
       }
@@ -727,7 +727,7 @@
   const slides = Array.from(document.querySelectorAll('.slide'));
   const total = slides.length;
   let current = 0;
-  let lang = 'ko';
+  let lang = 'en';
 
   function applyLang() {
     document.querySelectorAll('.i18n').forEach(el => {
@@ -795,8 +795,9 @@
     resizeTimer = setTimeout(fitHeadlines, 120);
   });
 
-  buildVideoGrid('video-bg-branding', BRANDING_VIDEO_DIR, BRANDING_VIDEO_FILES);
-  buildVideoGrid('video-bg', VIDEO_DIR, VIDEO_FILES);
+  const TEXT_RESERVE_ZONE = { left: 6, top: 28, w: 88, h: 44 }; // keep tiles clear of the centered headline/body text
+  buildVideoGrid('video-bg-branding', BRANDING_VIDEO_DIR, BRANDING_VIDEO_FILES, TEXT_RESERVE_ZONE);
+  buildVideoGrid('video-bg', VIDEO_DIR, VIDEO_FILES, TEXT_RESERVE_ZONE);
   buildPhotoBg();
   applyLang();
   render();
