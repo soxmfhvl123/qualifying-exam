@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sai — 반응하는 공간을 위한 가구 디자인 연구</title>
+
+<style>
+  :root {
+    --bg: #06070B;
+    --ink: #F3F3F0;
+    --grey: #9599A3;
+    --line: rgba(255,255,255,0.14);
+    --accent: #F6D32D;
+    --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font);
+    overflow: hidden;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  body { -webkit-font-smoothing: antialiased; }
+
+  #stars { position: fixed; inset: 0; z-index: 0; display: block; }
+
+  #progress {
+    position: fixed; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--line); z-index: 50;
+  }
+  #progress-bar {
+    height: 100%; width: 0%; background: var(--accent);
+    transition: width .45s cubic-bezier(.4,0,.2,1);
+  }
+
+  #deck { position: relative; width: 100%; height: 100dvh; z-index: 1; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity .5s ease;
+    padding: clamp(28px, 5.5vw, 96px);
+  }
+  .slide.active { opacity: 1; pointer-events: auto; z-index: 1; }
+
+  .slide-content {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  .eyebrow {
+    font-size: clamp(16px, 2vw, 22px); font-weight: 500; color: var(--accent);
+    letter-spacing: .03em; margin-bottom: clamp(16px, 2.6vw, 30px);
+  }
+
+  .headline {
+    font-weight: 700; font-size: clamp(34px, 4.8vw, 68px);
+    line-height: 1.22; letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+
+  .body-text {
+    font-size: clamp(17px, 1.7vw, 21px); line-height: 1.65;
+    color: var(--grey); max-width: min(540px, 85vw);
+    margin-top: clamp(16px, 2.2vw, 22px);
+  }
+  .body-text.nowrap { white-space: nowrap; max-width: none; }
+  @media (max-width: 760px) {
+    .body-text.nowrap { white-space: normal; max-width: min(540px, 85vw); }
+  }
+
+  .page-index {
+    position: fixed; left: clamp(28px,5.5vw,96px); bottom: clamp(20px,3vw,40px);
+    font-size: 14px; color: var(--grey); font-variant-numeric: tabular-nums;
+    z-index: 40; letter-spacing: .02em; opacity: .7;
+  }
+
+  /* ---------- cover ---------- */
+  .cover { justify-content: center; align-items: center; text-align: center; }
+  .cover .kicker { font-size: 14px; color: var(--grey); margin-bottom: 20px; letter-spacing: .02em; }
+  .cover .title-en {
+    font-weight: 500; font-size: clamp(17px, 1.9vw, 23px); color: var(--grey);
+    max-width: min(600px,88vw); line-height: 1.45; margin-bottom: 16px;
+  }
+  .cover .title-kr {
+    font-weight: 700; font-size: clamp(34px, 5.6vw, 76px); line-height: 1.15;
+    max-width: min(740px,90vw); letter-spacing: -0.01em; color: var(--ink);
+  }
+  .cover .subtitle { font-size: clamp(19px, 2.1vw, 25px); color: var(--accent); margin-top: 16px; font-weight: 500; }
+  .cover .footer { margin-top: clamp(30px,5vw,56px); font-size: 15px; color: var(--grey); }
+  .hint {
+    position: absolute; bottom: clamp(20px,3vw,40px); left: 50%; transform: translateX(-50%);
+    font-size: 13px; color: var(--grey); letter-spacing: .02em; opacity: .6;
+  }
+
+  /* ---------- hero word ---------- */
+  .hero-word {
+    font-weight: 800; letter-spacing: .01em;
+    font-size: clamp(60px, 10vw, 150px); line-height: 1;
+    color: var(--accent); margin: clamp(10px,2vw,20px) 0;
+  }
+
+  /* ---------- list ---------- */
+  .list {
+    list-style: none; margin-top: clamp(18px,3vw,32px);
+    max-width: min(560px,85vw); width: 100%;
+  }
+  .list li {
+    padding: clamp(14px,2vw,20px) 0; border-top: 1px solid var(--line);
+    display: flex; justify-content: center; gap: clamp(14px,2vw,22px); align-items: baseline;
+  }
+  .list li:last-child { border-bottom: 1px solid var(--line); }
+  .list .li-index { font-size: clamp(14px,1.6vw,18px); color: var(--accent); font-weight: 700; }
+  .list .li-main { font-size: clamp(18px,1.9vw,22px); font-weight: 500; line-height: 1.4; color: var(--ink); }
+
+  /* ---------- outcomes ---------- */
+  .outcomes {
+    display: flex; flex-direction: column; align-items: center;
+    gap: clamp(28px,4vw,44px); margin-top: clamp(22px,3.4vw,40px);
+  }
+  .outcomes h3 { font-size: clamp(16px,1.8vw,20px); color: var(--accent); font-weight: 700; letter-spacing: .02em; margin-bottom: 10px; }
+  .outcomes p { font-size: clamp(17px,1.7vw,20px); color: var(--ink); line-height: 1.6; max-width: min(500px,85vw); }
+
+  /* ---------- timeline ---------- */
+  .tl-track {
+    margin-top: clamp(28px,4.5vw,56px); width: min(960px, 90vw);
+  }
+  .tl-line { position: relative; height: 2px; background: var(--line); margin-bottom: clamp(18px,2.6vw,28px); }
+  .tl-tick {
+    position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%;
+    background: var(--accent); transform: translate(-50%,-50%);
+  }
+  .tl-labels { display: flex; }
+  .tl-seg { flex: 1; text-align: center; padding: 0 8px; }
+  .tl-period { display: block; color: var(--accent); font-weight: 700; font-size: clamp(15px,1.5vw,18px); }
+  .tl-desc { display: block; color: var(--ink); font-size: clamp(15px,1.6vw,19px); margin-top: 6px; line-height: 1.4; }
+
+  .tl-now-wrap { position: absolute; top: 50%; width: 0; height: 0; }
+  .tl-now {
+    position: absolute; top: 0; left: 0; width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent); transform: translate(-50%,-50%);
+    animation: tl-now-pulse 1.6s ease-in-out infinite;
+    box-shadow: 0 0 8px 1px rgba(246,211,45,.7);
+  }
+  .tl-now::before {
+    content: ''; position: absolute; inset: -7px; border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    animation: tl-now-ripple 1.6s ease-out infinite;
+  }
+  @keyframes tl-now-pulse {
+    0%, 100% { transform: translate(-50%,-50%) scale(1); }
+    50% { transform: translate(-50%,-50%) scale(1.5); }
+  }
+  @keyframes tl-now-ripple {
+    0% { transform: scale(.6); opacity: .8; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tl-now, .tl-now::before { animation: none; }
+  }
+
+  @media (max-width: 760px) {
+    .tl-line { display: none; }
+    .tl-labels { flex-direction: column; gap: 18px; }
+    .tl-now-wrap { display: none; }
+  }
+
+  /* ---------- roadmap ---------- */
+  .roadmap-row {
+    display: flex; align-items: flex-end; justify-content: center;
+    gap: clamp(20px,4vw,48px); margin-top: clamp(30px,5vw,56px); flex-wrap: wrap;
+    min-height: clamp(50px,7.2vw,88px);
+  }
+  .roadmap-step { display: flex; flex-direction: column; align-items: center; }
+  .rs-word { font-weight: 800; letter-spacing: -0.01em; line-height: 1; }
+  .rs-word.sm { font-size: clamp(26px,3.4vw,38px); color: var(--grey); }
+  .rs-word.md { font-size: clamp(36px,4.8vw,54px); color: var(--ink); }
+  .rs-word.lg { font-size: clamp(50px,7.2vw,88px); color: var(--accent); }
+  .roadmap-arrow { color: var(--line); font-size: 20px; align-self: center; }
+
+  .rs-word.cycle {
+    animation: rs-cycle 6s ease-in-out infinite;
+    animation-fill-mode: backwards;
+  }
+  .rs-word.cycle.rs-1 { animation-delay: -1s; }
+  .rs-word.cycle.rs-2 { animation-delay: 1s; }
+  .rs-word.cycle.rs-3 { animation-delay: 3s; }
+  @keyframes rs-cycle {
+    0%   { font-size: clamp(26px,3.4vw,38px); color: var(--grey); }
+    8%   { font-size: clamp(50px,7.2vw,88px); color: var(--accent); }
+    25%  { font-size: clamp(50px,7.2vw,88px); color: var(--accent); }
+    42%  { font-size: clamp(26px,3.4vw,38px); color: var(--grey); }
+    100% { font-size: clamp(26px,3.4vw,38px); color: var(--grey); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rs-word.cycle { animation: none; }
+    .rs-word.cycle.rs-1 { font-size: clamp(50px,7.2vw,88px); color: var(--accent); }
+    .rs-word.cycle.rs-2 { font-size: clamp(36px,4.8vw,54px); color: var(--ink); }
+    .rs-word.cycle.rs-3 { font-size: clamp(26px,3.4vw,38px); color: var(--grey); }
+  }
+
+  /* ---------- video background (motivation slide) ---------- */
+  .video-bg {
+    position: absolute; inset: 0; z-index: 0; overflow: hidden;
+  }
+  .video-bg video {
+    position: absolute; display: block; width: auto; height: auto;
+    border-radius: 2px;
+    filter: grayscale(20%) brightness(1.15);
+  }
+  .video-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.4); }
+
+  /* ---------- looping photo background (space slide) ---------- */
+  .photo-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .photo-bg img {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: 0; transition: opacity .8s ease;
+  }
+  .photo-bg img.is-active { opacity: 1; }
+  .photo-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.55); }
+
+  /* ---------- looping single-video background (reused across slides) ---------- */
+  .bg-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-video video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; filter: grayscale(15%) brightness(1.05);
+  }
+  .bg-video-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.55); }
+
+  @media (max-width: 760px) {
+    .roadmap-row { flex-direction: column; gap: 18px; }
+    .roadmap-arrow { display: none; }
+    .video-bg { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .slide { transition: none; }
+  }
+
+  /* ---------- print / PDF export (press D) ---------- */
+  @media print {
+    #stars, #progress, .page-index, .hint { display: none !important; }
+    html, body { overflow: visible !important; height: auto !important; }
+    #deck { position: static !important; height: auto !important; }
+    .slide {
+      position: relative !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      page-break-after: always;
+      break-after: page;
+      width: 100vw;
+      height: 100vh;
+    }
+    .slide:last-of-type { page-break-after: auto; break-after: auto; }
+    .video-bg video { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div id="progress"><div id="progress-bar"></div></div>
+<div class="page-index" id="page-index">01 / 14</div>
+
+<div id="deck">
+
+  <!-- 01 : Cover -->
+  <section class="slide active cover">
+    <div class="kicker i18n" data-ko="Master Qualifying Exam · IDAS · 2026">Master Qualifying Exam · IDAS · 2026</div>
+    <div class="title-en i18n" data-ko="Furniture Design for a Responsive Space: A Study Centred on Furniture Using Digital Media" data-en="반응하는 공간을 위한 가구 디자인: 디지털미디어를 활용한 가구를 중심으로 한 연구">Furniture Design for a Responsive Space: A Study Centred on Furniture Using Digital Media</div>
+    <div class="title-kr i18n" data-ko="반응하는 공간을 위한 가구 디자인 연구" data-en="Furniture Design for a Responsive Space">반응하는 공간을 위한 가구 디자인 연구</div>
+    <div class="subtitle i18n" data-ko="디지털미디어를 활용한 가구를 중심으로" data-en="Centred on Furniture Using Digital Media">디지털미디어를 활용한 가구를 중심으로</div>
+    <div class="footer i18n" data-ko="최동진 Jin Choi · 홍익대학교 IDAS 디지털미디어디자인" data-en="Jin Choi · Hongik University IDAS, Digital Media Design">최동진 Jin Choi · 홍익대학교 IDAS 디지털미디어디자인</div>
+    <div class="hint i18n" data-ko="Space →">Space →</div>
+  </section>
+
+  <!-- 02 : 브랜드 배경 (with video background) -->
+  <section class="slide" id="branding-slide">
+    <div class="video-bg" id="video-bg-branding"></div>
+    <div class="video-scrim"></div>
+    <div class="slide-content">
+      <div class="eyebrow i18n" data-ko="나는 왜 공간에 관심이 있는가 — 1" data-en="Why I Care About Space — 1">나는 왜 공간에 관심이 있는가 — 1</div>
+      <div class="headline i18n" data-ko="F&amp;B, TECH, FASHION, PERSONAL 브랜딩을 하면서" data-en="While branding F&amp;B, TECH, FASHION, PERSONAL">F&amp;B, TECH, FASHION, PERSONAL 브랜딩을 하면서</div>
+      <div class="body-text i18n" data-ko="사람들은 점점 더 자신만의 방식으로 살고 싶어했다. 그 관심은 자연스럽게, 내가 매일 있는 공간으로 향했다." data-en="People increasingly wanted to live in their own way. That interest naturally turned toward the space I inhabit every day.">사람들은 점점 더 자신만의 방식으로 살고 싶어했다. 그 관심은 자연스럽게, 내가 매일 있는 공간으로 향했다.</div>
+    </div>
+  </section>
+
+  <!-- 03 : 개인 동기 (with video background) -->
+  <section class="slide" id="motivation-slide">
+    <div class="video-bg" id="video-bg"></div>
+    <div class="video-scrim"></div>
+    <div class="slide-content">
+      <div class="eyebrow i18n" data-ko="나는 왜 공간에 관심이 있는가 — 2" data-en="Why I Care About Space — 2">나는 왜 공간에 관심이 있는가 — 2</div>
+      <div class="headline i18n" data-ko="나는 실재하는 것을 만들고 싶었다." data-en="I wanted to make something real.">나는 실재하는 것을 만들고 싶었다.</div>
+    </div>
+  </section>
+
+  <!-- 04 : SPACE -->
+  <section class="slide" id="space-slide">
+    <div class="photo-bg" id="photo-bg"></div>
+    <div class="photo-scrim"></div>
+    <div class="slide-content">
+      <div class="eyebrow i18n" data-ko="관심의 대상" data-en="Object of Interest">관심의 대상</div>
+      <div class="hero-word i18n" data-ko="SPACE">SPACE</div>
+      <div class="body-text i18n" data-ko="우리는 매일 공간 안에서 살아가고, 그 사이에는 가구들이 있다." data-en="We live inside space every day, and furniture stands between us.">우리는 매일 공간 안에서 살아가고, 그 사이에는 가구들이 있다.</div>
+    </div>
+  </section>
+
+  <!-- 05 : 가장 작은 건축 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="관점" data-en="Perspective">관점</div>
+    <div class="headline i18n" data-ko="가구는, 건축에서 가장 작은 단위다." data-en="Furniture is the smallest unit of architecture.">가구는, 건축에서 가장 작은 단위다.</div>
+    <div class="body-text i18n nowrap" data-ko="그렇다면, 가구를 바꾸면 사람과 공간의 관계가 바뀐다." data-en="Then, changing the furniture changes the relationship between people and space.">그렇다면, 가구를 바꾸면 사람과 공간의 관계가 바뀐다.</div>
+  </section>
+
+  <!-- 06 : 가설 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="가설" data-en="Hypothesis">가설</div>
+    <div class="headline i18n" data-ko="가구가 사람에게 반응하면, 공간도 그 사람을 알아보기 시작한다." data-en="If furniture responds to a person, the space begins to recognize them too.">가구가 사람에게 반응하면, 공간도 그 사람을 알아보기 시작한다.</div>
+    <div class="body-text i18n" data-ko="가구가 사람과 공간을 이을 수 있다고 믿는다." data-en="I believe furniture can connect people and space.">가구가 사람과 공간을 이을 수 있다고 믿는다.</div>
+  </section>
+
+  <!-- 07 : 재료 -->
+  <section class="slide" id="material-slide">
+    <div class="bg-video"><video muted loop playsinline preload="none" src="renders/stool%20demo.mp4"></video></div>
+    <div class="bg-video-scrim"></div>
+    <div class="slide-content">
+      <div class="eyebrow i18n" data-ko="재료" data-en="Material">재료</div>
+      <div class="headline i18n" data-ko="스틸은 차갑다. 사람이 닿아야, 비로소 따뜻해진다." data-en="Steel is cold. Only a human touch makes it warm.">스틸은 차갑다. 사람이 닿아야, 비로소 따뜻해진다.</div>
+      <div class="body-text i18n" data-ko="빛은 재료가 아니라, 사람이 남긴 흔적이다." data-en="Light is not a material — it is the trace a person leaves behind.">빛은 재료가 아니라, 사람이 남긴 흔적이다.</div>
+    </div>
+  </section>
+
+  <!-- 08 : 왜 디지털 미디어인가 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="왜 디지털 미디어인가" data-en="Why Digital Media">왜 디지털 미디어인가</div>
+    <div class="headline i18n" data-ko="사람의 행위를, 데이터로 바꾸기 위해." data-en="To turn a human act into data.">사람의 행위를, 데이터로 바꾸기 위해.</div>
+    <ul class="list">
+      <li>
+        <span class="li-index">01</span>
+        <span class="li-main i18n" data-ko="센서가 앉은 행위를 데이터로 바꾼다." data-en="A sensor turns the act of sitting into data.">센서가 앉은 행위를 데이터로 바꾼다.</span>
+      </li>
+      <li>
+        <span class="li-index">02</span>
+        <span class="li-main i18n" data-ko="그 데이터가 시간으로 계산되고 쌓인다." data-en="That data is calculated and accumulated as time.">그 데이터가 시간으로 계산되고 쌓인다.</span>
+      </li>
+      <li>
+        <span class="li-index">03</span>
+        <span class="li-main i18n" data-ko="계산된 시간이 빛과 숫자로 즉시 돌아온다." data-en="The calculated time returns instantly as light and numbers.">계산된 시간이 빛과 숫자로 즉시 돌아온다.</span>
+      </li>
+    </ul>
+  </section>
+
+  <!-- 09 : 연구 질문 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="연구 질문" data-en="Research Question">연구 질문</div>
+    <div class="headline i18n" data-ko="어떻게 가구를 통해 사람이 공간과 상호작용할 수 있는가?" data-en="How can furniture let people interact with space?">어떻게 가구를 통해 사람이 공간과 상호작용할 수 있는가?</div>
+  </section>
+
+  <!-- 10 : 검증 방법 (예정) -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="검증 방법 (예정)" data-en="Validation Method (Planned)">검증 방법 (예정)</div>
+    <div class="headline i18n" data-ko="설문 · 자동 체류 로그 · 관찰기록" data-en="Survey · Automatic Dwell-Time Log · Observation Notes">설문 · 자동 체류 로그 · 관찰기록</div>
+    <div class="body-text i18n" data-ko="가구 제작 후 진행" data-en="To be conducted after the furniture is built">가구 제작 후 진행</div>
+  </section>
+
+  <!-- 11 : 기대 효과 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="기대 효과" data-en="Expected Impact">기대 효과</div>
+    <div class="outcomes">
+      <div class="oc-item">
+        <h3 class="i18n" data-ko="학술적 기여" data-en="Academic Contribution">학술적 기여</h3>
+        <p class="i18n" data-ko="가구를 매개로 한 공간-인간 관계 연구의 시작점" data-en="A starting point for research on space–human relationships mediated by furniture">가구를 매개로 한 공간-인간 관계 연구의 시작점</p>
+      </div>
+      <div class="oc-item">
+        <h3 class="i18n" data-ko="실무적 기여" data-en="Practical Contribution">실무적 기여</h3>
+        <p class="i18n" data-ko="반응형 가구 디자인의 실제 적용 가능성 제시" data-en="Suggests real-world applicability for responsive furniture design">반응형 가구 디자인의 실제 적용 가능성 제시</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 : 타임라인 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="타임라인" data-en="Timeline">타임라인</div>
+    <div class="tl-track">
+      <div class="tl-line">
+        <span class="tl-tick" style="left:0%"></span>
+        <span class="tl-tick" style="left:33.333%"></span>
+        <span class="tl-tick" style="left:66.666%"></span>
+        <span class="tl-tick" style="left:100%"></span>
+        <span class="tl-now-wrap" style="left:7.3%">
+          <span class="tl-now"></span>
+        </span>
+      </div>
+      <div class="tl-labels">
+        <div class="tl-seg">
+          <span class="tl-period i18n" data-ko="9월 – 11월" data-en="Sep – Nov">9월 – 11월</span>
+          <span class="tl-desc i18n" data-ko="가구 제작" data-en="Furniture production">가구 제작</span>
+        </div>
+        <div class="tl-seg">
+          <span class="tl-period i18n" data-ko="11월 – 1월" data-en="Nov – Jan">11월 – 1월</span>
+          <span class="tl-desc i18n" data-ko="전시 및 실증 및 데이터 수집" data-en="Exhibition, field testing & data collection">전시 및 실증 및 데이터 수집</span>
+        </div>
+        <div class="tl-seg">
+          <span class="tl-period i18n" data-ko="1월 – 3월" data-en="Jan – Mar">1월 – 3월</span>
+          <span class="tl-desc i18n" data-ko="논문 작성 및 제출" data-en="Thesis writing & submission">논문 작성 및 제출</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 : 로드맵 -->
+  <section class="slide">
+    <div class="eyebrow i18n" data-ko="로드맵" data-en="Roadmap">로드맵</div>
+    <div class="roadmap-row">
+      <div class="roadmap-step"><div class="rs-word cycle rs-1 i18n" data-ko="Object">Object</div></div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-step"><div class="rs-word cycle rs-2 i18n" data-ko="Room">Room</div></div>
+      <div class="roadmap-arrow">→</div>
+      <div class="roadmap-step"><div class="rs-word cycle rs-3 i18n" data-ko="Space">Space</div></div>
+    </div>
+  </section>
+
+  <!-- 14 : 마무리 문구 -->
+  <section class="slide" id="closing-slide">
+    <div class="bg-video"><video muted loop playsinline preload="none" src="renders/%20warm%20welcome%20demo.mp4"></video></div>
+    <div class="bg-video-scrim"></div>
+    <div class="slide-content">
+      <div class="headline">
+        <span class="i18n" data-ko="공간을 완성하는 건," data-en="What completes a space">공간을 완성하는 건,</span><br>
+        <span class="i18n" data-ko="결국 그 안에 있는 사람입니다." data-en="is, in the end, the person who is inside it.">결국 그 안에 있는 사람입니다.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 : Thank you -->
+  <section class="slide">
+    <div class="headline i18n" data-ko="감사합니다" data-en="Thank You">감사합니다</div>
+    <div class="body-text i18n" data-ko="Thank you">Thank you</div>
+  </section>
+
+</div>
+
+<script src="video-list.js"></script>
+<script>
+  /* ---------- starfield ---------- */
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let stars = [];
+
+  function initStars() {
+    const density = 9000;
+    const count = Math.floor((innerWidth * innerHeight) / density);
+    stars = Array.from({ length: count }, () => ({
+      x: Math.random() * innerWidth,
+      y: Math.random() * innerHeight,
+      r: Math.random() * 1.3 + 0.3,
+      base: Math.random() * 0.5 + 0.3,
+      phase: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.5 + 0.15
+    }));
+  }
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+    canvas.style.width = innerWidth + 'px';
+    canvas.style.height = innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    initStars();
+  }
+
+  function drawStars(t) {
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    ctx.fillStyle = '#ffffff';
+    for (const s of stars) {
+      const a = reduceMotion ? s.base : s.base + Math.sin((t / 1000) * s.speed + s.phase) * 0.25;
+      ctx.globalAlpha = Math.max(0, Math.min(1, a));
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (!reduceMotion) requestAnimationFrame(drawStars);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  drawStars(0);
+
+  /* ---------- fit headlines to one line ---------- */
+  function isWide() { return innerWidth > 700; }
+
+  function fitHeadlines() {
+    document.querySelectorAll('.headline, .hero-word').forEach(el => {
+      if (el.querySelector('br')) return; // keep intentional manual breaks as-is
+      el.style.fontSize = '';
+      if (!isWide()) {
+        el.style.whiteSpace = 'normal';
+        el.style.maxWidth = 'min(600px, 88vw)';
+        return;
+      }
+      el.style.whiteSpace = 'nowrap';
+      el.style.maxWidth = 'none';
+      const slide = el.closest('.slide');
+      const cs = getComputedStyle(slide);
+      const avail = slide.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 8;
+      let guard = 0;
+      while (el.getBoundingClientRect().width > avail && guard < 100) {
+        const cur = parseFloat(getComputedStyle(el).fontSize);
+        if (cur <= 14) break;
+        el.style.fontSize = (cur - 1) + 'px';
+        guard++;
+      }
+    });
+  }
+
+  /* ---------- random tiled video background (reused across slides) ---------- */
+  // 파일명은 video-list.js (같은 폴더, 터미널 명령으로 자동 생성)에서 읽어옵니다.
+  // video-list.js가 아직 없으면 빈 배열로 동작해서 영상 없이도 안전합니다.
+  const VIDEO_FILES = window.VIDEO_FILES || [];
+  const VIDEO_DIR = 'vid/';
+  const BRANDING_VIDEO_FILES = [
+    "wheel-01.mp4",
+    "wheel-02.mp4",
+    "wheel-03.mp4",
+    "wheel-04.mp4",
+    "wheel-05.mp4",
+    "wheel-06.mp4",
+    "wheel-07.mp4",
+    "wheel-08.mp4",
+    "wheel-09.mp4",
+    "wheel-10.mp4",
+    "wheel-11.mp4",
+    "wheel-12.mp4",
+    "wheel-13.mp4",
+    "ASK.mp4",
+    "Comp 1.mp4",
+    "Comp 1 copy.mp4",
+    "hf_20260603_093013_da1da6a1-b9cd-411b-b939-bb5bfc50e77b.mp4",
+    "video_ComfyUI_00023_.mp4",
+    "이미지_애니메이션_생성.mp4",
+    "컴포지션.mp4",
+    "KakaoTalk_Video_2026-09-20-16-28-24.mp4",
+    "branding-screen-01.mp4",
+  ];
+  const BRANDING_VIDEO_DIR = 'branding/';
+  const videoGridBuilt = new Set();
+  const videoGridActive = new Set();
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function boxOverlapArea(a, b) {
+    const ox = Math.max(0, Math.min(a.left + a.w, b.left + b.w) - Math.max(a.left, b.left));
+    const oy = Math.max(0, Math.min(a.top + a.h, b.top + b.h) - Math.max(a.top, b.top));
+    return ox * oy;
+  }
+
+  function buildVideoGrid(hostId, dir, fileList) {
+    const host = document.getElementById(hostId);
+    if (!host || videoGridBuilt.has(hostId) || fileList.length === 0) return;
+    videoGridBuilt.add(hostId);
+    const files = shuffle(fileList);
+    const n = files.length;
+    const aspect = innerWidth / innerHeight || 1.6;
+    const baseW = Math.max(8, Math.min(22, 100 / Math.sqrt(n * aspect) * 0.95)); // target tile width so n tiles roughly cover the canvas
+
+    // pre-compute each tile's random size, then place biggest-first so they get first pick of open space
+    const tiles = files.map((name) => {
+      const w = baseW * (0.7 + Math.random() * 0.45);
+      const clipAspect = 0.6 + Math.random() * 1.2; // guessed width/height of the clip until metadata loads
+      const h = Math.min(100, w * aspect / clipAspect);
+      return { name, w, h };
+    });
+    tiles.sort((a, b) => (b.w * b.h) - (a.w * a.h));
+
+    const placed = [];
+    tiles.forEach((tile) => {
+      const { w, h } = tile;
+      let best = null;
+      let bestOverlap = Infinity;
+      for (let attempt = 0; attempt < 80; attempt++) {
+        const left = Math.random() * Math.max(0, 100 - w);
+        const top = Math.random() * Math.max(0, 100 - h);
+        const box = { left, top, w, h };
+        const overlap = placed.reduce((sum, p) => sum + boxOverlapArea(box, p), 0);
+        if (overlap < bestOverlap) { bestOverlap = overlap; best = box; }
+        if (overlap === 0) break;
+      }
+      placed.push(best);
+      tile.box = best;
+    });
+
+    tiles.forEach((tile) => {
+      const { name, box } = tile;
+      const v = document.createElement('video');
+      v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'none';
+      v.src = dir + encodeURIComponent(name);
+      v.style.width = box.w + '%';
+      v.style.maxHeight = (box.h * 1.05) + '%';
+      v.style.left = box.left + '%';
+      v.style.top = box.top + '%';
+
+      v.addEventListener('loadedmetadata', () => {
+        if (v.duration && isFinite(v.duration)) {
+          v.currentTime = Math.random() * v.duration; // stagger playback so clips don't sync
+        }
+      });
+      v.addEventListener('error', () => { v.style.display = 'none'; });
+      host.appendChild(v);
+    });
+  }
+
+  function updateVideoGrid(hostId, slideId) {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    const active = slides[current] && slides[current].id === slideId;
+    const wasActive = videoGridActive.has(hostId);
+    if (active && !wasActive) {
+      videoGridActive.add(hostId);
+      host.querySelectorAll('video').forEach(v => {
+        v.preload = 'auto';
+        v.load();
+        v.play().catch(() => {});
+      });
+    } else if (!active && wasActive) {
+      videoGridActive.delete(hostId);
+      host.querySelectorAll('video').forEach(v => v.pause());
+    }
+  }
+
+  /* ---------- looping photo background (space slide) ---------- */
+  const SPACE_PHOTO_DIR = 'space/';
+  const SPACE_PHOTOS = [
+    "djinc_Japandi_style_modern_master_bedroom_low_platform_wooden_7f057f8c-de79-4060-b7b0-56d6806f0e79_2.png",
+    "djinc_expansive_open-plan_luxury_penthouse_modern_sectional_c_322d04cd-59e6-46c8-a0f1-8cea36c86ccd_3.png",
+    "djinc_minimalist_architectural_gallery_corridor_floor-to-ceil_2ca92e74-1e10-4d0c-8ed1-978f39ca61ba_3.png",
+    "djinc_modern_mid-century_home_library_and_study_dark_charcoal_f8773fb3-2570-4df7-82ad-f54551d5974c_0.png",
+    "djinc_modern_minimalist_living_room_full_bleed_composition_fl_a5ea7cd5-1573-4db3-8ea2-dfa8ebea3d74_0.png",
+    "djinc_modern_minimalist_living_room_full_bleed_composition_fl_a5ea7cd5-1573-4db3-8ea2-dfa8ebea3d74_1.png",
+    "djinc_retro-futuristic_modern_sunken_living_room_curved_velve_e2fe2d5e-6108-4888-8dcd-b94d4c9509d8_2.png",
+    "djinc_sleek_modern_kitchen_waterfall_edge_Calacatta_marble_is_62f7fb8c-c0f0-43fb-a7e5-0c5b50fecb0d_3.png",
+    "djinc_warm_minimalist_studio_interior_microcement_plaster_wal_c9af62b8-dc6b-4190-aff9-59d730a12527_3.png",
+  ];
+  let photoBgBuilt = false;
+  let photoTimer = null;
+  let photoIndex = 0;
+
+  function buildPhotoBg() {
+    const host = document.getElementById('photo-bg');
+    if (!host || photoBgBuilt || SPACE_PHOTOS.length === 0) return;
+    photoBgBuilt = true;
+    shuffle(SPACE_PHOTOS).forEach((name, i) => {
+      const img = document.createElement('img');
+      img.src = SPACE_PHOTO_DIR + name;
+      img.loading = 'lazy';
+      img.alt = '';
+      if (i === 0) img.classList.add('is-active');
+      host.appendChild(img);
+    });
+  }
+
+  function startPhotoLoop() {
+    if (photoTimer) return;
+    const host = document.getElementById('photo-bg');
+    if (!host) return;
+    const imgs = host.querySelectorAll('img');
+    if (imgs.length < 2) return;
+    photoTimer = setInterval(() => {
+      imgs[photoIndex].classList.remove('is-active');
+      photoIndex = (photoIndex + 1) % imgs.length;
+      imgs[photoIndex].classList.add('is-active');
+    }, 2000);
+  }
+
+  function stopPhotoLoop() {
+    if (photoTimer) { clearInterval(photoTimer); photoTimer = null; }
+  }
+
+  function updatePhotoBg() {
+    const active = slides[current] && slides[current].id === 'space-slide';
+    if (active) startPhotoLoop(); else stopPhotoLoop();
+  }
+
+  /* ---------- looping single-video backgrounds (reused across slides) ---------- */
+  const bgVideoActive = new WeakMap();
+
+  function updateBgVideos() {
+    document.querySelectorAll('.bg-video video').forEach((v) => {
+      const slide = v.closest('.slide');
+      const active = !!(slide && slide.classList.contains('active'));
+      const wasActive = bgVideoActive.get(v);
+      if (active && !wasActive) {
+        bgVideoActive.set(v, true);
+        v.preload = 'auto';
+        v.load();
+        v.play().catch(() => {});
+      } else if (!active && wasActive) {
+        bgVideoActive.set(v, false);
+        v.pause();
+      }
+    });
+  }
+
+  /* ---------- deck navigation ---------- */
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+  let lang = 'ko';
+
+  function applyLang() {
+    document.querySelectorAll('.i18n').forEach(el => {
+      const en = el.getAttribute('data-en');
+      const ko = el.getAttribute('data-ko');
+      el.textContent = (lang === 'en' && en) ? en : ko;
+    });
+    document.documentElement.lang = lang;
+  }
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === current));
+    document.getElementById('page-index').textContent =
+      String(current + 1).padStart(2, '0') + ' / ' + total;
+    document.getElementById('progress-bar').style.width =
+      ((current + 1) / total * 100) + '%';
+    updateVideoGrid('video-bg-branding', 'branding-slide');
+    updateVideoGrid('video-bg', 'motivation-slide');
+    updatePhotoBg();
+    updateBgVideos();
+  }
+
+  function next() { if (current < total - 1) { current++; render(); } }
+  function prev() { if (current > 0) { current--; render(); } }
+
+  window.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (k === ' ' || k === 'ArrowRight' || k === 'PageDown') {
+      e.preventDefault(); next();
+    } else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') {
+      e.preventDefault(); prev();
+    } else if (k.toLowerCase() === 'l') {
+      lang = (lang === 'ko') ? 'en' : 'ko';
+      applyLang();
+      fitHeadlines();
+    } else if (k.toLowerCase() === 'd' && !e.metaKey && !e.ctrlKey) {
+      e.preventDefault();
+      window.print();
+    }
+  });
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(fitHeadlines, 120);
+  });
+
+  buildVideoGrid('video-bg-branding', BRANDING_VIDEO_DIR, BRANDING_VIDEO_FILES);
+  buildVideoGrid('video-bg', VIDEO_DIR, VIDEO_FILES);
+  buildPhotoBg();
+  applyLang();
+  render();
+  fitHeadlines();
+</script>
+
+</body>
+</html>
