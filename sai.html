@@ -40,7 +40,7 @@
     transition: width .45s cubic-bezier(.4,0,.2,1);
   }
 
-  #deck { position: relative; width: 100%; height: 100dvh; z-index: 1; }
+  #deck { position: relative; width: 100%; height: 100dvh; z-index: 1; touch-action: manipulation; }
 
   .slide {
     position: absolute; inset: 0;
@@ -55,6 +55,7 @@
   .slide-content {
     position: relative; z-index: 2;
     display: flex; flex-direction: column; align-items: center;
+    pointer-events: none; /* let taps fall through to the slide for nav */
   }
 
   .eyebrow {
@@ -97,10 +98,6 @@
   }
   .cover .subtitle { font-size: clamp(19px, 2.1vw, 25px); color: var(--accent); margin-top: 16px; font-weight: 500; }
   .cover .footer { margin-top: clamp(30px,5vw,56px); font-size: 15px; color: var(--grey); }
-  .hint {
-    position: absolute; bottom: clamp(20px,3vw,40px); left: 50%; transform: translateX(-50%);
-    font-size: 13px; color: var(--grey); letter-spacing: .02em; opacity: .6;
-  }
 
   /* ---------- hero word ---------- */
   .hero-word {
@@ -211,30 +208,34 @@
   /* ---------- video background (motivation slide) ---------- */
   .video-bg {
     position: absolute; inset: 0; z-index: 0; overflow: hidden;
+    pointer-events: none; /* let taps fall through to the slide for nav */
   }
   .video-bg video {
     position: absolute; display: block; width: auto; height: auto;
     border-radius: 2px;
     filter: grayscale(20%) brightness(1.15);
+    pointer-events: none;
   }
-  .video-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.4); }
+  .video-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.4); pointer-events: none; }
 
   /* ---------- looping photo background (space slide) ---------- */
-  .photo-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .photo-bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
   .photo-bg img {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; opacity: 0; transition: opacity .8s ease;
+    pointer-events: none;
   }
   .photo-bg img.is-active { opacity: 1; }
-  .photo-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.55); }
+  .photo-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.55); pointer-events: none; }
 
   /* ---------- looping single-video background (reused across slides) ---------- */
-  .bg-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; }
+  .bg-video { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
   .bg-video video {
     position: absolute; inset: 0; width: 100%; height: 100%;
     object-fit: cover; filter: grayscale(15%) brightness(1.05);
+    pointer-events: none;
   }
-  .bg-video-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.55); }
+  .bg-video-scrim { position: absolute; inset: 0; z-index: 1; background: rgba(6,7,11,.55); pointer-events: none; }
 
   @media (max-width: 760px) {
     .roadmap-row { flex-direction: column; gap: 18px; }
@@ -248,7 +249,7 @@
 
   /* ---------- print / PDF export (press D) ---------- */
   @media print {
-    #stars, #progress, .page-index, .hint { display: none !important; }
+    #stars, #progress, .page-index { display: none !important; }
     html, body { overflow: visible !important; height: auto !important; }
     #deck { position: static !important; height: auto !important; }
     .slide {
@@ -281,7 +282,6 @@
     <div class="title-kr i18n" data-ko="반응하는 공간을 위한 가구 디자인 연구" data-en="Furniture Design for a Responsive Space">반응하는 공간을 위한 가구 디자인 연구</div>
     <div class="subtitle i18n" data-ko="디지털미디어를 활용한 가구를 중심으로" data-en="Centred on Furniture Using Digital Media">디지털미디어를 활용한 가구를 중심으로</div>
     <div class="footer i18n" data-ko="최동진 Jin Choi · 홍익대학교 IDAS 디지털미디어디자인" data-en="Jin Choi · Hongik University IDAS, Digital Media Design">최동진 Jin Choi · 홍익대학교 IDAS 디지털미디어디자인</div>
-    <div class="hint i18n" data-ko="Space →">Space →</div>
   </section>
 
   <!-- 02 : 브랜드 배경 (with video background) -->
@@ -555,6 +555,8 @@
     "컴포지션.mp4",
     "KakaoTalk_Video_2026-09-20-16-28-24.mp4",
     "branding-screen-01.mp4",
+    "branding-screen-02.mp4",
+    "branding-screen-03.mp4",
   ];
   const BRANDING_VIDEO_DIR = 'branding/';
   const videoGridBuilt = new Set();
@@ -582,11 +584,11 @@
     const files = shuffle(fileList);
     const n = files.length;
     const aspect = innerWidth / innerHeight || 1.6;
-    const baseW = Math.max(8, Math.min(22, 100 / Math.sqrt(n * aspect) * 0.95)); // target tile width so n tiles roughly cover the canvas
+    const baseW = Math.max(10, Math.min(26, 100 / Math.sqrt(n * aspect) * 1.15)); // target tile width so n tiles roughly cover the canvas
 
     // pre-compute each tile's random size, then place biggest-first so they get first pick of open space
     const tiles = files.map((name) => {
-      const w = baseW * (0.7 + Math.random() * 0.45);
+      const w = baseW * (0.75 + Math.random() * 0.5);
       const clipAspect = 0.6 + Math.random() * 1.2; // guessed width/height of the clip until metadata loads
       const h = Math.min(100, w * aspect / clipAspect);
       return { name, w, h };
@@ -766,6 +768,26 @@
       window.print();
     }
   });
+
+  (function setupTapNav() {
+    const deck = document.getElementById('deck');
+    let downX = null, downY = null, downT = 0;
+
+    deck.addEventListener('pointerdown', (e) => {
+      downX = e.clientX; downY = e.clientY; downT = Date.now();
+    });
+
+    deck.addEventListener('pointerup', (e) => {
+      if (downX === null) return;
+      const dx = Math.abs(e.clientX - downX);
+      const dy = Math.abs(e.clientY - downY);
+      const dt = Date.now() - downT;
+      downX = null;
+      if (dx > 10 || dy > 10 || dt > 600) return; // ignore drags/swipes/long-presses
+      const x = e.clientX / window.innerWidth;
+      if (x < 0.5) prev(); else next();
+    });
+  })();
 
   let resizeTimer;
   window.addEventListener('resize', () => {
